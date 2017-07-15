@@ -1,9 +1,35 @@
 from collections import OrderedDict
 
 """
-	Bimap provides a method to bijectively map distinct immutable items
-	to ordinals (natural numbers). The mapping is constructed as new items
-	are registered. There is no way to unmap a previously registered item.
+	Bimap provides a method to bijectively map between distinct immutable items
+	and ordinals (natural numbers). The mapping is constructed as new items
+	are registered.
+
+
+
+	A Bimap has two important properties. The first is Monotonicity:
+
+		Assuming that (Bimap[item_i] == ordinal_i), and that
+		(Bimap[item_j] == ordinal_j) then
+
+		"registration of item_i preceded registration of item_j" <=>
+		ordinal_i < ordinal_j
+
+	In fact, the ordinal of an item is simply the order, counting from 0,
+	of its registration.
+
+
+
+	The second important property is Idempotency:
+
+		If, at any specific point in time, it is true that (Bimap[item] == ordinal),
+		then, henceforth, (Bimap[item] == ordinal) is guaranteed for the rest of the
+		lifetime of	the mapping.
+
+	Specifically, there is no way to unmap a previously registered item. Deletion of
+	an item would necessarily lead to a violation of Idempotency.
+
+
 
 	A typical client could be a string interner in a compiler or interpreter.
 
@@ -34,37 +60,39 @@ from collections import OrderedDict
 	In addition to these:
 
 		__init__(*arg)
+			Bimap(item1, item2, ...)
 			Initializes a mapping from a list of item arguments. Argument order is respected,
-			so that the 0:th item is taken from the first argument etc.
+			so that the first item gets mapped to the ordinal 0, the second to 1 etc.
 
 		register(item) -> ordinal
-			Provides an idempotent method of adding (or looking up) items to the map.
+			Add an item to the Bimap.
 
 		ordinal(item) -> ordinal
-			Gives the ordinal of a registered item, or None.
+			Gives the ordinal of a registered item, or None. Note: this function does not
+			register a previously unregistered item.
 
 		item(n) -> item
 		nth(n) -> item
-			Gives the item mapped to the n:th ordinal.
+			Gives the n:th registered item.
 
 		ordinals()
-			Returns the underlying OrderedDict. Can be used to iterate over the mapping ordinals:
+			Returns the underlying OrderedDict. Can be used to iterate over the ordinals:
 
-			for n in bm.ordinals():
-				pass
+				for i in bm.ordinals():
+					pass
 
 		enumerate()
-			Enumerate the item, ordinal pairs in order of registration. This is simply a
-			delegation to the underlying OrderedDict's .items()
+			Enumerate the items by ordinal. Useful for iteration over all (item, ordinal) pairs.
+			This is simply a delegation to the underlying OrderedDict's .items()
 
-			for item, ordinal in bm.items():
-				pass
+				for ordinal, item in bm.enumerate():
+					pass
 
 		range()
-			Returns the range of ordinals mapped.
+			Returns the set of all the registered items (thus losing order).
 
 		domain()
-			Constructs a set of the mapped items (thus losing order).
+			Returns a range()-object of all the ordinals (order preserving).
 """
 
 __license__ = "poetic"
@@ -131,14 +159,14 @@ class Bimap():
 		except KeyError:
 			return None
 
-	def nth(self, ordinal): # just an alias for .item()
+	def nth(self, ordinal): # alias for .item()
 		return self.item(ordinal)
 
 	def ordinals(self):
 		return self.ord2item.keys()
 
 	def enumerate(self):
-		return self.item2ord.items()
+		return enumerate(self.item2ord)
 
 	def range(self):
 		return set(self)
@@ -221,9 +249,9 @@ if __name__ == '__main__':
 
 	# Test .nth()
 
-	assert bm.nth(2) == 'foo'
-	assert bm.nth(4) == 'ack!'
-	assert bm.nth(0) == 'xyzzy'
+	assert bm.item(2) == 'foo'
+	assert bm.item(4) == 'ack!'
+	assert bm.item(0) == 'xyzzy'
 
 	# Test .__getitem__(), verify that an unmapped item returns None
 
@@ -233,8 +261,8 @@ if __name__ == '__main__':
 
 	# Test .enumerate(), verifying the bijectivity of the mapping
 
-	for item, ordinal in bm.enumerate():
-		assert bm.nth(ordinal) == item
+	for ordinal, item in bm.enumerate():
+		assert bm.item(ordinal) == item
 		assert bm.ordinal(item) == ordinal
 
 	# Test .__iter__() via ''for''
@@ -267,7 +295,7 @@ if __name__ == '__main__':
 
 	# Test .enumerate()
 
-	assert list(bm.enumerate()) == [ ('xyzzy', 0), ('plugh', 1), ('foo', 2), ('bar', 3), ('ack!', 4) ]
+	assert list(bm.enumerate()) == [ (0, 'xyzzy'), (1, 'plugh'), (2, 'foo'), (3, 'bar'), (4, 'ack!') ]
 
 	# Test somewhat involved eval(repr)-roundtrip
 
