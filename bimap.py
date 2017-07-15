@@ -10,12 +10,21 @@ from collections import OrderedDict
 
 	Bimap supports the following protocols:
 
-	-	bool() (False if empty, True otherwise)
-	-	repr() (eval-roundtrip safe)
-	-	__getitem__() (provides Bimap[obj] => ordinal)
-	-	comparisons (__eq__ and __ne__)
-	-	len()
-	-   iter() (''for o in self'' iterates over the mapped objects in order of registration)
+		bool()
+			False if empty, True otherwise.
+
+		repr()
+			eval()-roundtrip safe.
+
+		__getitem__()
+			Provides Bimap[obj] -> ordinal.
+
+		comparison (__eq__ and __ne__)
+
+		len()
+
+		iter()
+			''for o in self'' iterates over the mapped objects in order of registration.
 
 
 
@@ -110,8 +119,6 @@ class Bimap():
 			raise ValueError(self._classname + ' cannot register "None"')
 		try:
 			return self.obj2ord[obj]
-		except TypeError as e:
-			raise ValueError(self._classname + ' cannot register mutable obj of type ' + type(obj)) from e
 		except KeyError:
 			ordinal = len(self)
 			self.obj2ord[obj] = ordinal
